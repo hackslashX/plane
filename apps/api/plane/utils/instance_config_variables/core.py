@@ -5,6 +5,14 @@
 # Python imports
 import os
 
+okta_oidc_config_variables = [
+    {"key": "IS_OKTA_OIDC_ENABLED", "value": os.environ.get("IS_OKTA_OIDC_ENABLED", "0"), "category": "OKTA_OIDC", "is_encrypted": False},
+    {"key": "OKTA_OIDC_ISSUER", "value": os.environ.get("OKTA_OIDC_ISSUER"), "category": "OKTA_OIDC", "is_encrypted": False},
+    {"key": "OKTA_OIDC_CLIENT_ID", "value": os.environ.get("OKTA_OIDC_CLIENT_ID"), "category": "OKTA_OIDC", "is_encrypted": False},
+    {"key": "OKTA_OIDC_CLIENT_SECRET", "value": os.environ.get("OKTA_OIDC_CLIENT_SECRET"), "category": "OKTA_OIDC", "is_encrypted": True},
+    {"key": "OKTA_OIDC_REQUIRE_EMAIL_VERIFIED", "value": "0", "category": "OKTA_OIDC", "is_encrypted": False},
+]
+
 authentication_config_variables = [
     {
         "key": "ENABLE_SIGNUP",
@@ -257,6 +265,7 @@ core_config_variables = [
     *github_config_variables,
     *gitlab_config_variables,
     *gitea_config_variables,
+    *okta_oidc_config_variables,
     *smtp_config_variables,
     *llm_config_variables,
     *unsplash_config_variables,
