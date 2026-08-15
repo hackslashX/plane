@@ -18,6 +18,8 @@ from .views import (
     GitHubOauthInitiateEndpoint,
     GoogleCallbackEndpoint,
     GoogleOauthInitiateEndpoint,
+    OktaOIDCCallbackEndpoint,
+    OktaOIDCInitiateEndpoint,
     MagicGenerateEndpoint,
     MagicSignInEndpoint,
     MagicSignUpEndpoint,
@@ -89,6 +91,9 @@ urlpatterns = [
         GoogleCallbackSpaceEndpoint.as_view(),
         name="space-google-callback",
     ),
+    ## Okta OIDC
+    path("okta/", OktaOIDCInitiateEndpoint.as_view(), name="okta-initiate"),
+    path("okta/callback/", OktaOIDCCallbackEndpoint.as_view(), name="okta-callback"),
     ## Github Oauth
     path("github/", GitHubOauthInitiateEndpoint.as_view(), name="github-initiate"),
     path("github/callback/", GitHubCallbackEndpoint.as_view(), name="github-callback"),

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { KeyRound, Mails } from "lucide-react";
+import { KeyRound, Mails, ShieldCheck } from "lucide-react";
 // types
 import type {
   TCoreInstanceAuthenticationModeKeys,
@@ -24,6 +24,7 @@ import { GithubConfiguration } from "@/components/authentication/github-config";
 import { GitlabConfiguration } from "@/components/authentication/gitlab-config";
 import { GoogleConfiguration } from "@/components/authentication/google-config";
 import { PasswordLoginConfiguration } from "@/components/authentication/password-config-switch";
+import { OktaOIDCConfiguration } from "@/components/authentication/okta-config";
 
 // Authentication methods
 export const getCoreAuthenticationModesMap: (
@@ -80,6 +81,14 @@ export const getCoreAuthenticationModesMap: (
     icon: <img src={gitlabLogo} height={20} width={20} alt="GitLab Logo" />,
     config: <GitlabConfiguration disabled={disabled} updateConfig={updateConfig} />,
     enabledConfigKey: "IS_GITLAB_ENABLED",
+  },
+  okta: {
+    key: "okta",
+    name: "Okta OIDC",
+    description: "Allow existing Plane members to sign in with Okta via OpenID Connect.",
+    icon: <ShieldCheck className="h-6 w-6 p-0.5 text-tertiary" />,
+    config: <OktaOIDCConfiguration />,
+    enabledConfigKey: "IS_OKTA_OIDC_ENABLED",
   },
   gitea: {
     key: "gitea",

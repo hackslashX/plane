@@ -1,0 +1,112 @@
+name: Build branch images to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch or tag to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ghcr-branch-build-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      image_prefix: ${{ steps.image.outputs.prefix }}
+      tag: ${{ steps.image.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 1
+      - id: image
+        name: Create image tag
+        env:
+          BRANCH: ${{ inputs.branch }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          safe_branch=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g; s/^-*//; s/-*$//')
+          safe_owner=$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')
+          test -n "$safe_branch"
+          printf 'prefix=ghcr.io/%s\n' "$safe_owner" >> "$GITHUB_OUTPUT"
+          printf 'tag=%s-%s\n' "$safe_branch" "$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+  service-images:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: plane-admin
+            context: .
+            file: apps/admin/Dockerfile.admin
+          - image: plane-frontend
+            context: .
+            file: apps/web/Dockerfile.web
+          - image: plane-space
+            context: .
+            file: apps/space/Dockerfile.space
+          - image: plane-live
+            context: .
+            file: apps/live/Dockerfile.live
+          - image: plane-backend
+            context: apps/api
+            file: apps/api/Dockerfile.api
+          - image: plane-proxy
+            context: apps/proxy
+            file: apps/proxy/Dockerfile.ce
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ needs.prepare.outputs.image_prefix }}/${{ matrix.image }}:${{ needs.prepare.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  aio-image:
+    needs: [prepare, service-images]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Prepare AIO assets
+        working-directory: deployments/aio/community
+        run: bash ./build.sh --release "${{ needs.prepare.outputs.tag }}"
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: deployments/aio/community
+          file: deployments/aio/community/Dockerfile
+          push: true
+          tags: ${{ needs.prepare.outputs.image_prefix }}/plane-aio-community:${{ needs.prepare.outputs.tag }}
+          build-args: |
+            PLANE_VERSION=${{ needs.prepare.outputs.tag }}
+            PLANE_IMAGE_PREFIX=${{ needs.prepare.outputs.image_prefix }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
